@@ -1,0 +1,36 @@
+---
+description: Microservice delivery workflow and quality gates
+alwaysApply: true
+---
+
+# 15-minute fixed workflow
+
+## 1) Task split (5 min)
+
+- Break large goals into commit-ready, small tasks.
+- Every task must include DoD: code + validation + risk note.
+- Prefer small and complete increments over large changes.
+
+## 2) AI closed loop (5 min)
+
+Every task must include three phases:
+
+1. Plan: goal, scope, constraints.
+2. Implement: concrete file-level changes.
+3. Verify: compile/test/interface checks with evidence.
+
+## 3) Pre-commit quality check (5 min)
+
+- Potential bugs
+- Edge conditions
+- Regression risks
+
+Output pass/fail and required fixes before commit.
+
+# Metric-oriented execution
+
+- Volume: ship multiple small complete loops.
+- Engage: include logs/errors/constraints in each loop.
+- Efficiency: test before change and perform diff review.
+- Growth: focus on 1-2 weak metrics each week.
+- Breadth: cover multiple modules and task types weekly.
