@@ -11,17 +11,19 @@
     <description>YoungPlace distributed microservice framework</description>
 
     <modules>
-        <module>youngplace-common</module>
-        <module>youngplace-registry</module>
-        <module>youngplace-gateway</module>
-        <module>youngplace-iam-service</module>
-        <module>youngplace-user-service</module>
+        <module>ev-common</module>
+        <module>ev-registry</module>
+        <module>ev-gateway</module>
+        <module>ev-iam-service</module>
+        <module>ev-user-service</module>
+        <module>ev-websocket</module>
     </modules>
 
     <properties>
         <java.version>1.8</java.version>
         <spring.boot.version>2.3.12.RELEASE</spring.boot.version>
         <spring.cloud.version>Hoxton.SR12</spring.cloud.version>
+        <spring.cloud.alibaba.version>2.2.8.RELEASE</spring.cloud.alibaba.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -40,6 +42,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring.cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring.cloud.alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

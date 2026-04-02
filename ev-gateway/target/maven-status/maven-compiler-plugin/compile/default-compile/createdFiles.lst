@@ -1,0 +1,8 @@
+com\youngplace\gateway\config\AuthorizationProperties$Rule.class
+com\youngplace\gateway\config\NacosDebugProperties.class
+com\youngplace\gateway\config\JwtAuthProperties.class
+com\youngplace\gateway\config\AuthorizationProperties.class
+com\youngplace\gateway\controller\GatewayDebugController.class
+com\youngplace\gateway\GatewayApplication.class
+com\youngplace\gateway\filter\AuthorizationFilter.class
+com\youngplace\gateway\filter\JwtAuthenticationFilter.class

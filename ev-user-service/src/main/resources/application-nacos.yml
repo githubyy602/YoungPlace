@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    nacos:
+      discovery:
+        enabled: true
+      config:
+        enabled: true
+        refresh-enabled: true
+        shared-configs:
+          - data-id: youngplace-user-debug.yaml
+            group: ${NACOS_GROUP:DEFAULT_GROUP}
+            refresh: true
+
+eureka:
+  client:
+    enabled: false

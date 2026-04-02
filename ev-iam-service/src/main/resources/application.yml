@@ -1,0 +1,68 @@
+server:
+  port: 9001
+
+spring:
+  application:
+    name: iam-service
+  datasource:
+    url: jdbc:h2:file:./data/iam-auth-v1;MODE=MySQL;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: false
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+security:
+  jwt:
+    secret: ev-jwt-demo-secret
+    expire-seconds: 3600
+    issuer: iam-service
+  auth:
+    captcha-enabled: true
+    captcha-length: 4
+    captcha-expire-seconds: 120
+    debug-return-captcha-code: true
+    login-max-failures: 5
+    lock-minutes: 15
+    refresh-expire-seconds: 604800
+    refresh-rotate: true
+
+youngplace:
+  debug:
+    config-source: local-application
+    auth-policy: default
+    captcha-strict: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
+
+  endpoint:
+    health:
+      show-details: always

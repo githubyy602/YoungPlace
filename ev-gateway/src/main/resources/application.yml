@@ -1,0 +1,82 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+    gateway:
+      routes:
+        - id: iam-service-route
+          uri: lb://iam-service
+          predicates:
+            - Path=/api/iam/**
+        - id: user-service-route
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+        - id: websocket-socket-ws-route
+          uri: lb:ws://websocket-service
+          predicates:
+            - Path=/socket.io/**
+            - Header=Upgrade, (?i).*websocket.*
+        - id: websocket-socket-http-route
+          uri: lb://websocket-service
+          predicates:
+            - Path=/socket.io/**
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+security:
+  jwt:
+    enabled: true
+    secret: ev-jwt-demo-secret
+    issuer: iam-service
+    clock-skew-seconds: 30
+    header-user: X-Auth-User
+    header-roles: X-Auth-Roles
+    header-token-issuer: X-Auth-Token-Issuer
+    trace-header: X-Trace-Id
+    enforce-token-type: true
+    required-token-type: access
+    exclude-paths:
+      - /api/iam/login
+      - /api/iam/captcha
+      - /api/iam/token/refresh
+      - /api/iam/me
+      - /socket.io/**
+      - /actuator/**
+  authorization:
+    enabled: true
+    rules:
+      - path: /api/users/**
+        methods: [GET]
+        any-role: [ROLE_USER, ROLE_ADMIN]
+
+youngplace:
+  debug:
+    config-source: local-gateway-application
+    route-policy: default
+    auth-header-strict: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh

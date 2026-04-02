@@ -1,0 +1,3 @@
+com\youngplace\user\controller\UserController.class
+com\youngplace\user\UserApplication.class
+com\youngplace\user\config\NacosDebugProperties.class

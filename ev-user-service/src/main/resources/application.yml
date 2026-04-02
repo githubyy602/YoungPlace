@@ -1,0 +1,37 @@
+server:
+  port: 9002
+
+spring:
+  application:
+    name: user-service
+  cloud:
+    nacos:
+      discovery:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        enabled: false
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:youngplace-dev}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+youngplace:
+  debug:
+    config-source: local-user-application
+    user-data-mode: mock
+    strict-auth-header: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh
