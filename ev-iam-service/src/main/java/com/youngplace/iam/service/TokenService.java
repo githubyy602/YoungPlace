@@ -3,6 +3,7 @@ package com.youngplace.iam.service;
 import com.youngplace.iam.config.AuthSecurityProperties;
 import com.youngplace.iam.config.JwtProperties;
 import com.youngplace.iam.entity.IamRefreshSessionEntity;
+import com.youngplace.iam.error.AuthErrorCode;
 import com.youngplace.iam.repository.IamRefreshSessionRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -30,6 +31,7 @@ public class TokenService {
     private final IamRefreshSessionRepository refreshSessionRepository;
 
     private final ConcurrentMap<String, Long> blacklistedAccessJti = new ConcurrentHashMap<String, Long>();
+    private final ConcurrentMap<String, Object> refreshSessionLocks = new ConcurrentHashMap<String, Object>();
 
     public TokenService(JwtProperties jwtProperties,
                         AuthSecurityProperties authSecurityProperties,
@@ -115,46 +117,57 @@ public class TokenService {
         Claims claims = parseClaims(refreshToken);
         String type = stringClaim(claims, "typ");
         if (!TOKEN_TYPE_REFRESH.equals(type)) {
-            return RefreshResult.failed("refresh token type is invalid");
+            return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "refresh token type is invalid");
         }
 
         String username = claims.getSubject();
         String sessionId = stringClaim(claims, "sid");
         String refreshJti = safeText(claims.getId());
         int tokenVersion = intClaim(claims, "ver");
-
-        IamRefreshSessionEntity session = refreshSessionRepository.findById(sessionId).orElse(null);
-        if (session == null || session.isRevoked()) {
-            return RefreshResult.failed("refresh session is not active");
-        }
-        if (!safeText(session.getRefreshJti()).equals(refreshJti)) {
-            return RefreshResult.failed("refresh token mismatch");
-        }
-        if (session.getExpireAtEpochMillis() < Instant.now().toEpochMilli()) {
-            refreshSessionRepository.deleteById(sessionId);
-            return RefreshResult.failed("refresh token is expired");
+        if (!StringUtils.hasText(sessionId)) {
+            return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "refresh session id is missing");
         }
 
-        UserAccountService.UserAccount account = userAccountService.findByUsername(username);
-        if (account == null || !account.isEnabled()) {
-            return RefreshResult.failed("user is not available");
-        }
-        if (userAccountService.isLocked(account)) {
-            return RefreshResult.failed("user is locked");
-        }
-        if (account.getTokenVersion() != tokenVersion || session.getTokenVersion() != tokenVersion) {
-            return RefreshResult.failed("token version is outdated");
-        }
+        Object sessionLock = refreshSessionLocks.computeIfAbsent(sessionId, key -> new Object());
+        try {
+            synchronized (sessionLock) {
+                IamRefreshSessionEntity session = refreshSessionRepository.findById(sessionId).orElse(null);
+                if (session == null || session.isRevoked()) {
+                    return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "refresh session is not active");
+                }
+                if (!safeText(session.getRefreshJti()).equals(refreshJti)) {
+                    return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "refresh token mismatch");
+                }
+                if (session.getExpireAtEpochMillis() < Instant.now().toEpochMilli()) {
+                    refreshSessionRepository.deleteById(sessionId);
+                    return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "refresh token is expired");
+                }
 
-        if (rotateRefreshToken) {
-            session.setRevoked(true);
-            refreshSessionRepository.save(session);
-            TokenPair pair = issueTokens(account.getUsername(), account.getRoles(), account.getTokenVersion());
-            return RefreshResult.success(pair);
-        }
+                UserAccountService.UserAccount account = userAccountService.findByUsername(username);
+                if (account == null || !account.isEnabled()) {
+                    return RefreshResult.failed(AuthErrorCode.ACCOUNT_DISABLED, "user is not available");
+                }
+                if (userAccountService.isLocked(account)) {
+                    return RefreshResult.failed(AuthErrorCode.ACCOUNT_LOCKED, "user is locked");
+                }
+                if (account.getTokenVersion() != tokenVersion || session.getTokenVersion() != tokenVersion) {
+                    return RefreshResult.failed(AuthErrorCode.REFRESH_TOKEN_INVALID, "token version is outdated");
+                }
 
-        TokenPair pair = issueAccessTokenOnly(account.getUsername(), account.getRoles(), account.getTokenVersion(), sessionId);
-        return RefreshResult.success(pair);
+                if (rotateRefreshToken) {
+                    session.setRevoked(true);
+                    refreshSessionRepository.save(session);
+                    TokenPair pair = issueTokens(account.getUsername(), account.getRoles(), account.getTokenVersion());
+                    return RefreshResult.success(pair);
+                }
+
+                TokenPair pair = issueAccessTokenOnly(
+                        account.getUsername(), account.getRoles(), account.getTokenVersion(), sessionId);
+                return RefreshResult.success(pair);
+            }
+        } finally {
+            refreshSessionLocks.remove(sessionId, sessionLock);
+        }
     }
 
     private TokenPair issueAccessTokenOnly(String username, List<String> roles, int tokenVersion, String sessionId) {
@@ -359,6 +372,7 @@ public class TokenService {
 
     public static class RefreshResult {
         private boolean success;
+        private AuthErrorCode errorCode;
         private String message;
         private TokenPair tokenPair;
 
@@ -369,9 +383,10 @@ public class TokenService {
             return result;
         }
 
-        public static RefreshResult failed(String message) {
+        public static RefreshResult failed(AuthErrorCode errorCode, String message) {
             RefreshResult result = new RefreshResult();
             result.success = false;
+            result.errorCode = errorCode;
             result.message = message;
             return result;
         }
@@ -386,6 +401,10 @@ public class TokenService {
 
         public TokenPair getTokenPair() {
             return tokenPair;
+        }
+
+        public AuthErrorCode getErrorCode() {
+            return errorCode;
         }
     }
 

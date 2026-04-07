@@ -89,6 +89,7 @@ flowchart LR
 1. **IAM 登录鉴权能力**（`ev-iam-service`）  
    - 接口：`GET /api/iam/captcha`、`POST /api/iam/login`、`POST /api/iam/token/refresh`、`POST /api/iam/logout`  
    - 行为：验证码校验 + 账号密码校验 + 失败锁定 + Access/Refresh 双令牌签发与刷新
+   - 认证治理：统一错误码/状态码语义 + 全局异常处理 + 认证审计日志落库
    - 当前演示账号：`admin / 123456`（默认写入 IAM 本地 H2 持久库）
    - 辅助接口：`GET /api/iam/me`（解析并返回当前 access token 用户信息）
 
@@ -116,6 +117,8 @@ flowchart LR
 | IAM | `POST` | `/api/iam/token/refresh` | 刷新 access token（可轮换 refresh） |
 | IAM | `POST` | `/api/iam/logout` | 注销会话（支持 logoutAll） |
 | IAM | `GET` | `/api/iam/me` | 获取当前 token 对应用户信息 |
+| IAM | `GET` | `/api/iam/audit/logs` | 认证审计日志分页查询（仅 `ROLE_ADMIN`，支持 `username/eventType/traceId/messageKeyword/startAt/endAt/page/size`） |
+| IAM | `GET` | `/api/iam/audit/logs/export` | 认证审计日志导出（CSV，仅 `ROLE_ADMIN`，支持与查询接口同维度筛选） |
 | IAM | `GET` | `/api/iam/config/debug` | 查看 IAM 当前生效的 Nacos 调试配置（联调用） |
 | Gateway | `GET` | `/debug/gateway/config` | 查看 Gateway 当前生效的 Nacos 调试配置（联调用） |
 | User | `GET` | `/api/users/{id}` | 查询用户详情 |
@@ -354,12 +357,17 @@ security:
 - 微服务基础骨架完整可运行
 - 网关路由与服务注册已打通
 - IAM 验证码 + 账号锁定 + 双令牌刷新 + 网关校验的认证主链路可联通
+- IAM 错误码体系与全局异常处理已落地，认证失败语义统一
+- IAM 认证审计日志已落库（H2），可追踪登录/刷新/注销关键事件
+- IAM 认证审计查询接口已落地（分页/筛选 + 管理员权限控制 + traceId/关键词检索）
+- IAM 认证审计导出接口已落地（CSV 导出 + 管理员权限控制）
+- IAM refresh 并发竞争已加会话级互斥防护，避免同 token 并发双成功
 - 接口响应协议统一
 
 ### 6.2 待补齐（建议优先级）
 
-- P0：网关细粒度授权策略（基于角色/资源）、全局异常处理与错误码体系
-- P1：用户服务接入数据库、IAM 用户角色持久化、SSO 刷新令牌与注销机制、Socket.IO 多实例 Redis 适配、基础测试集
+- P0：网关细粒度授权策略（基于角色/资源）
+- P1：用户服务接入数据库、IAM 角色模型扩展、Socket.IO 多实例 Redis 适配、更完整测试集
 - P2：限流熔断、配置中心、日志/链路/指标可观测体系
 
 ---
@@ -396,6 +404,19 @@ security:
 - IAM Auth V1 总结：`docs/iam-auth-v1-summary.md`
 - IAM Auth V1 可行性方案：`docs/iam-auth-v1-feasibility-plan.md`
 - IAM Auth V1 执行报告：`docs/iam-auth-v1-execution-report.md`
+- IAM Auth V1 第二批总结：`docs/2026-04-02-IAM-AuthV1-第二批-summary.md`
+- IAM Auth V1 第二批方案：`docs/2026-04-02-IAM-AuthV1-第二批-feasibility-plan.md`
+- IAM Auth V1 第二批实施总结：`docs/2026-04-02-IAM-AuthV1-第二批实施-summary.md`
+- IAM Auth V1 第二批执行报告：`docs/2026-04-03-IAM-AuthV1-第二批-execution-report.md`
+- IAM Auth V1 审计查询与边界测试总结：`docs/2026-04-03-IAM-AuthV1-审计查询与边界测试-summary.md`
+- IAM Auth V1 审计查询与边界测试方案：`docs/2026-04-03-IAM-AuthV1-审计查询与边界测试-feasibility-plan.md`
+- IAM Auth V1 审计查询与边界测试执行报告：`docs/2026-04-03-IAM-AuthV1-审计查询与边界测试-execution-report.md`
+- IAM Auth V1 审计检索增强与会话边界总结：`docs/2026-04-03-IAM-AuthV1-审计检索增强与会话边界-summary.md`
+- IAM Auth V1 审计检索增强与会话边界方案：`docs/2026-04-03-IAM-AuthV1-审计检索增强与会话边界-feasibility-plan.md`
+- IAM Auth V1 审计检索增强与会话边界执行报告：`docs/2026-04-03-IAM-AuthV1-审计检索增强与会话边界-execution-report.md`
+- IAM Auth V1 审计导出与异常链路总结：`docs/2026-04-03-IAM-AuthV1-审计导出与异常链路-summary.md`
+- IAM Auth V1 审计导出与异常链路方案：`docs/2026-04-03-IAM-AuthV1-审计导出与异常链路-feasibility-plan.md`
+- IAM Auth V1 审计导出与异常链路执行报告：`docs/2026-04-03-IAM-AuthV1-审计导出与异常链路-execution-report.md`
 - TaskList 第1-2项总结：`docs/tasklist-item1-2-summary.md`
 - TaskList 第1-2项可行性方案：`docs/tasklist-item1-2-feasibility-plan.md`
 - TaskList 第1-2项执行报告：`docs/tasklist-item1-2-execution-report.md`
@@ -409,6 +430,6 @@ security:
 
 ## 9. 文档维护说明
 
-- 当前版本：`v1.9`
+- 当前版本：`v1.13`
 - 维护原则：**代码结构变化、功能变化、接口变化、配置变化，必须同步更新 README**
 - 维护责任：功能实现人（或对应 AI 执行任务）在同一变更中完成更新
